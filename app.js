@@ -28,6 +28,6 @@ io.on('connection', (socket) => {
 
 });
 
-server.listen(80, ()=>{
-    console.log("Listening on 80 !");
+server.listen(3000, ()=>{
+    console.log("Listening on 3000 !");
 });
