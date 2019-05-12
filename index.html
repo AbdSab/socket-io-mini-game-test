@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+<canvas width="640" height="480" id="canvas"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+<script>
+    window.onload = function(){
+        const socket = io();
+        const canvas = document.getElementById('canvas');
+        const c = canvas.getContext('2d');
+
+        /**
+         * Keys
+         */
+        key = []
+        RIGHT = 39;
+        UP = 38;
+        DOWN = 40;
+        LEFT = 37;
+        FIRE = 32;
+
+        document.addEventListener("keydown", function(e) {
+            key[e.keyCode] = true;
+        });
+        document.addEventListener("keyup", function(e){
+            delete key[e.keyCode];
+        });
+
+        class Player{
+            constructor(name, x,y){
+                this.name = name;
+                this.x = x;
+                this.y = y;
+            }
+        }
+
+        let players = {};
+        const myName = Math.random().toString(36).substring(7);
+        const me = new Player(myName,canvas.width/2,canvas.height/2);
+
+        socket.emit('player-new', me);
+
+        socket.on('player-list', (_players)=>{
+            for(let _player in _players){
+                players[_players[_player].name] = _players[_player];
+            }
+        });
+
+
+
+        socket.on('player-new', (player)=>{
+            console.log('player new');
+            players[player.name] = new Player(player.name, player.x, player.y);
+        });
+
+        socket.on('player-move', (player)=>{
+            players[player.name].x = player.x;
+            players[player.name].y = player.y;
+        });
+
+        socket.on('player-quit', (player)=>{
+            delete players[player.name]
+        });
+
+        function update(){
+            if(key[RIGHT]){
+                players[myName].x+=4;
+                socket.emit('player-move', players[myName]);
+            }
+            if(key[LEFT]){
+                players[myName].x-=4;
+                socket.emit('player-move', players[myName]);
+            }
+            if(key[UP]){
+                players[myName].y-=4;
+                socket.emit('player-move', players[myName]);
+            }
+            if(key[DOWN]){
+                players[myName].y+=4;
+                socket.emit('player-move', players[myName]);
+            }
+        }
+        function render(){
+            c.fillStyle = 'white';
+            c.fillRect(0,0,canvas.width,canvas.height);
+            for (let player in players){
+                c.fillStyle = players[player].name === 'me'?'red':'black';
+                c.fillText(players[player].name,players[player].x-10, players[player].y-24);
+                c.fillRect(players[player].x-16, players[player].y-16, 32,32);
+            };
+        }
+
+        function run(){
+            update();
+            render();
+            window.requestAnimationFrame(run);
+        }
+        run();
+    }
+</script>
+</body>
+</html>
