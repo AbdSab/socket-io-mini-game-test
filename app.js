@@ -7,6 +7,7 @@ app.get('/', function(req, res){
 });
 
 let players = {};
+let messages = {};
 
 io.on('connection', (socket) => {
     socket.on('player-new', (player) =>{
@@ -19,6 +20,17 @@ io.on('connection', (socket) => {
         players[socket.id].x = player.x;
         players[socket.id].y = player.y;
         socket.broadcast.emit('player-move', player);
+    });
+
+    socket.on('started-writing', (user)=>{
+        socket.broadcast.emit('started-writing',user);
+    });
+    socket.on('ended-writing', (user)=>{
+        socket.broadcast.emit('ended-writing',user);
+    });
+
+    socket.on('message', (message)=>{
+        io.emit('message', message);
     });
 
     socket.on('disconnect', ()=>{

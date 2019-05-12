@@ -6,13 +6,85 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
+    <style>
+        .chatbox{
+            border:1px solid black;
+            position:absolute;
+            bottom:0;
+            left:0;
+        }
+        .chatmessages ul{
+            padding:5px;
+        }
+        .chatmessages ul li{
+            list-style-type: none;
+        }
+        .chatmessages ul li span:first-child{
+            color: red;
+        }
+    </style>
 </head>
 <body>
+
+<div class="chatbox">
+    <div class="chatmessages">
+        <ul>
+        </ul>
+    </div>
+    <div class="writing">
+    </div>
+    <input id="message" type="text">
+    <button id="send">Send</button>
+</div>
+
 <canvas width="640" height="480" id="canvas"></canvas>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
 <script>
+    const socket = io();
+    const myName = Math.random().toString(36).substring(7);
+
+    const sendButton = document.querySelector("#send");
+    const messageInput = document.querySelector("#message");
+    const messageList = document.querySelector(".chatmessages ul");
+    const writingDiv = document.querySelector('.writing');
+
+    sendButton.onclick = ()=>{
+        const message = messageInput.value;
+        const messageData = {
+            "user":myName,
+            "message": message
+        }
+        socket.emit('message', messageData);
+    };
+
+    messageInput.addEventListener("focusin", ()=>{
+        socket.emit('started-writing', myName);
+    });
+    messageInput.addEventListener("focusout", ()=>{
+        socket.emit('ended-writing', myName);
+    });
+
+    socket.on('message', (message)=>{
+        const messageLi = document.createElement('li');
+        const name = document.createElement('span');
+        const messageContent = document.createElement('span');
+        name.appendChild(document.createTextNode(message["user"]));
+        messageContent.appendChild(document.createTextNode((message["message"])));
+        messageLi.appendChild(name);
+        messageLi.appendChild(document.createTextNode(" : "));
+        messageLi.appendChild(messageContent);
+        messageList.appendChild(messageLi);
+    });
+
+    socket.on('started-writing', (user)=>{
+        writingDiv.innerHTML = user + " is writing ...";
+    });
+
+    socket.on('ended-writing', (user)=>{
+        writingDiv.innerHTML = "";
+    });
+
     window.onload = function(){
-        const socket = io();
         const canvas = document.getElementById('canvas');
         const c = canvas.getContext('2d');
 
@@ -42,7 +114,6 @@
         }
 
         let players = {};
-        const myName = Math.random().toString(36).substring(7);
         const me = new Player(myName,canvas.width/2,canvas.height/2);
 
         socket.emit('player-new', me);
@@ -52,8 +123,6 @@
                 players[_players[_player].name] = _players[_player];
             }
         });
-
-
 
         socket.on('player-new', (player)=>{
             console.log('player new');
